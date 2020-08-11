@@ -3,6 +3,7 @@ package lk.uom.datasearch
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 
 object ParquetHomeWorkClassifyModel {
 
@@ -11,7 +12,10 @@ object ParquetHomeWorkClassifyModel {
       .appName("HomeWorkClassifyModel")
       .getOrCreate()
 
-//    val dataRoot = "/home/gayan/Downloads/Compressed/spark-2.4.6-bin-hadoop2.7/DATA"
+    //    val dataRoot = "/home/gayan/Downloads/Compressed/spark-2.4.6-bin-hadoop2.7/DATA"
+
+    import spark.sqlContext.implicits._;
+
     val dataRoot = "/SCDR"
     val dataDir = dataRoot + "/synv_20130601_20131201"
 

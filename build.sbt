@@ -7,8 +7,8 @@ scalaVersion := "2.11.8"
 scalacOptions ++= Seq("-unchecked","-deprecation")
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" % "spark-core_2.11" % "2.1.1" % "provided",
-  "org.apache.spark" % "spark-sql_2.11" % "2.1.1" % "provided"
+  "org.apache.spark" % "spark-core_2.12" % "2.4.6" % "provided",
+  "org.apache.spark" % "spark-sql_2.12" % "2.4.6" % "provided"
 )
 
 lazy val commonSettings = Seq(
