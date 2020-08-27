@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
 lazy val app = (project in file(".")).
   settings(commonSettings: _*).
   settings(
-    mainClass in assembly := Some("lk.uom.datasearch.ParquetHomeWorkClassifyModel"),
+    mainClass in assembly := Some("lk.uom.datasearch.ParquetAnnualHomeWorkClassifyModel"),
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
   )
 
