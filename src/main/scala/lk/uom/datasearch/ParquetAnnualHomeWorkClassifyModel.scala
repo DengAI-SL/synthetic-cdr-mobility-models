@@ -1,28 +1,37 @@
 package lk.uom.datasearch
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.IntegerType
 
 object ParquetAnnualHomeWorkClassifyModel {
-
+  /*
+   * Sample run : ./spark-submit --class lk.uom.datasearch.ParquetAnnualHomeWorkClassifyModel /media/education/0779713087/MSc/home-work-classify/target/scala-2.11/subscriber-home-work-classify-model_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
+   * Sample run on server: spark-submit --class lk.uom.datasearch.ParquetAnnualHomeWorkClassifyModel /home/hadoop/data/jobs/subscriber-home-work-classify-model_2.11-1.4.2.jar /SCDR
+   */
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .appName("HomeWorkClassifyModel")
       .getOrCreate()
 
-    //    val dataRoot = "/home/gayan/Downloads/Compressed/spark-2.4.6-bin-hadoop2.7/DATA"
 
     import spark.sqlContext.implicits._;
 
-    val dataRoot = "/SCDR"
+//    val dataRoot = "/SCDR"
+    val localDataRoot = "/media/education/0779713087/MSc/Data";
+
+    var dataRoot = localDataRoot;
+    if(args(0) != null){
+      dataRoot = args(0);
+    }
+    println("data root : ", dataRoot)
+
     val dataDir = dataRoot + "/synv_20130601_20131201"
 
     val homeOutputLocation = dataRoot + "/output/HomeYearOutput.csv"
     val workOutputLocation = dataRoot + "/output/WorkYearOutput.csv"
 
-
+    // Reading parquet data
     var cdrDF = spark.read.parquet(dataDir)
       .select(col("SUBSCRIBER_ID"), to_timestamp(col("CALL_TIME"), "yyyyMMddHHmmss").as("CALL_TIMESTAMP"), col("INDEX_1KM"))
       .withColumn("WEEK_OF_YEAR", date_format(col("CALL_TIMESTAMP"), "w").cast(IntegerType))
@@ -30,6 +39,7 @@ object ParquetAnnualHomeWorkClassifyModel {
       .withColumn("HOUR_OF_DAY", date_format(col("CALL_TIMESTAMP"), "H").cast(IntegerType));
 
 
+    // Filter for time, to separate home and work hours
     val HWTimeFilter: (Integer) => String = (hourOfDat: Integer) => {
 
       if(hourOfDat == null){
@@ -49,25 +59,40 @@ object ParquetAnnualHomeWorkClassifyModel {
 
     }
 
+    // Creating user defined function from filter
     val HWTimeFilterUdf = udf(HWTimeFilter)
 
+    // Applying user defined filter function to whole dataset
     var HWTimeFilterDF = cdrDF.withColumn("HW_TIME_FILTER", HWTimeFilterUdf(col("HOUR_OF_DAY").cast(IntegerType)))
 
+    // Limiting to only one record per day for a certain cell
     var distinctHWTimeFilterDF = HWTimeFilterDF.select(col("SUBSCRIBER_ID"), col("INDEX_1KM"), col("WEEK_OF_YEAR"), col("DATE_OF_YEAR"), col("HW_TIME_FILTER")).distinct()
 
-    var wholeYearHomeDF = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='HOME_HOUR'")
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(count(lit(1)).as("APPEARENCE_COUNT"))
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var filteredHomeDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='HOME_HOUR'");
+    var wholeYearAppearenceCountHomeDF = filteredHomeDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
+      .agg(count(lit(1)).as("APPEARENCE_COUNT"))
+    var wholeYearMAXSubsHomeDF =   wholeYearAppearenceCountHomeDF.groupBy("SUBSCRIBER_ID")
+      .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var wholeYearHomeDF = wholeYearMAXSubsHomeDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
+      .join(wholeYearAppearenceCountHomeDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
 
-    var wholeYearWorkDF = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='WORK_HOUR'")
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(count(lit(1)).as("APPEARENCE_COUNT"))
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var filteredWorkDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='WORK_HOUR'");
+    var wholeYearAppearenceCountWorkDF = filteredWorkDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
+      .agg(count(lit(1)).as("APPEARENCE_COUNT"))
+    var wholeYearMAXSubsWorkDF =   wholeYearAppearenceCountWorkDF.groupBy("SUBSCRIBER_ID")
+      .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var wholeYearWorkDF = wholeYearMAXSubsWorkDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
+      .join(wholeYearAppearenceCountWorkDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
 
     wholeYearHomeDF.coalesce(1).write.option("header", "true").csv(homeOutputLocation)
     wholeYearWorkDF.coalesce(1).write.option("header", "true").csv(workOutputLocation)
 
     var wholeYearCountHome = wholeYearHomeDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
-    var wholeYearCountWork = wholeYearHomeDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
+    var wholeYearCountWork = wholeYearWorkDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
 
     var wholeYearCountHomeOutLocation = dataRoot + "/output/SumHome.csv"
     var wholeYearCountWorkOutLocation = dataRoot + "/output/SumWork.csv"
@@ -82,8 +107,6 @@ object ParquetAnnualHomeWorkClassifyModel {
 
     var cellCenterDf = spark.read.option("header", "true").csv(cell_centers)
 
-//    var homeLocationDf = spark.read.option("header", "true").csv(wholeYearCountHomeOutLocation)
-//    var workLocationDf = spark.read.option("header", "true").csv(wholeYearCountWorkOutLocation)
       var homeLocationDf = wholeYearCountHome;
       var workLocationDf = wholeYearCountWork;
 

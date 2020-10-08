@@ -11,9 +11,18 @@ object ParquetWeeklyHomeWorkClassifyModel {
       .appName("HomeWorkClassifyModel")
       .getOrCreate()
 
-    //    val dataRoot = "/home/gayan/Downloads/Compressed/spark-2.4.6-bin-hadoop2.7/DATA";
+    val localDataRoot = "/media/education/0779713087/MSc/Data";
 
-    val dataRoot = "/SCDR"
+    import spark.sqlContext.implicits._;
+
+    //    val dataRoot = "/SCDR"
+    var dataRoot = localDataRoot;
+    if(args(0) != null){
+      dataRoot = args(0);
+    }
+    println("data root : ", dataRoot)
+    import spark.sqlContext.implicits._;
+
     val dataDir = dataRoot + "/synv_20130601_20131201"
 
     val homeOutputLocation = dataRoot + "/output/HomeYearOutput.csv"
@@ -46,25 +55,40 @@ object ParquetWeeklyHomeWorkClassifyModel {
 
     }
 
+    // Creating user defined function from filter
     val HWTimeFilterUdf = udf(HWTimeFilter)
 
+    // Applying user defined filter function to whole dataset
     var HWTimeFilterDF = cdrDF.withColumn("HW_TIME_FILTER", HWTimeFilterUdf(col("HOUR_OF_DAY").cast(IntegerType)))
 
+    // Limiting to only one record per day for a certain cell
     var distinctHWTimeFilterDF = HWTimeFilterDF.select(col("SUBSCRIBER_ID"), col("INDEX_1KM"), col("WEEK_OF_YEAR"), col("DATE_OF_YEAR"), col("HW_TIME_FILTER")).distinct()
 
-    var wholeYearHomeDF = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='HOME_HOUR'")
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(count(lit(1)).as("APPEARENCE_COUNT"))
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var filteredHomeDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='HOME_HOUR'");
+    var wholeYearAppearenceCountHomeDF = filteredHomeDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
+      .agg(count(lit(1)).as("APPEARENCE_COUNT"))
+    var wholeYearMAXSubsHomeDF =   wholeYearAppearenceCountHomeDF.groupBy("SUBSCRIBER_ID")
+      .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var wholeYearHomeDF = wholeYearMAXSubsHomeDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
+      .join(wholeYearAppearenceCountHomeDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
 
-    var wholeYearWorkDF = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='WORK_HOUR'")
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(count(lit(1)).as("APPEARENCE_COUNT"))
-      .groupBy("SUBSCRIBER_ID", "INDEX_1KM").agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var filteredWorkDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='WORK_HOUR'");
+    var wholeYearAppearenceCountWorkDF = filteredWorkDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
+      .agg(count(lit(1)).as("APPEARENCE_COUNT"))
+    var wholeYearMAXSubsWorkDF =   wholeYearAppearenceCountWorkDF.groupBy("SUBSCRIBER_ID")
+      .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
+    var wholeYearWorkDF = wholeYearMAXSubsWorkDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
+      .join(wholeYearAppearenceCountWorkDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
 
     wholeYearHomeDF.coalesce(1).write.option("header", "true").csv(homeOutputLocation)
     wholeYearWorkDF.coalesce(1).write.option("header", "true").csv(workOutputLocation)
 
     var wholeYearCountHome = wholeYearHomeDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
-    var wholeYearCountWork = wholeYearHomeDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
+    var wholeYearCountWork = wholeYearWorkDF.groupBy("INDEX_1KM").agg(count(lit(1)).as("COUNT_IN_1KM_CELL"))
 
     var wholeYearCountHomeOutLocation = dataRoot + "/output/SumHome.csv"
     var wholeYearCountWorkOutLocation = dataRoot + "/output/SumWork.csv"
