@@ -1,4 +1,4 @@
-package lk.uom.datasearch
+package lk.uom.datasearch.homework
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
@@ -12,16 +12,13 @@ object ParquetAnnualHomeWorkClassifyModel {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .appName("HomeWorkClassifyModel")
-      .getOrCreate()
+      .getOrCreate();
 
-
-    import spark.sqlContext.implicits._;
-
-//    val dataRoot = "/SCDR"
+    //    val dataRoot = "/SCDR"
     val localDataRoot = "/media/education/0779713087/MSc/Data";
 
     var dataRoot = localDataRoot;
-    if(args(0) != null){
+    if (args(0) != null) {
       dataRoot = args(0);
     }
     println("data root : ", dataRoot)
@@ -42,10 +39,10 @@ object ParquetAnnualHomeWorkClassifyModel {
     // Filter for time, to separate home and work hours
     val HWTimeFilter: (Integer) => String = (hourOfDat: Integer) => {
 
-      if(hourOfDat == null){
+      if (hourOfDat == null) {
         ""
       }
-      else{
+      else {
         if (hourOfDat < 5) {
           "HOME_HOUR"
         }
@@ -71,22 +68,22 @@ object ParquetAnnualHomeWorkClassifyModel {
     var filteredHomeDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='HOME_HOUR'");
     var wholeYearAppearenceCountHomeDF = filteredHomeDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
       .agg(count(lit(1)).as("APPEARENCE_COUNT"))
-    var wholeYearMAXSubsHomeDF =   wholeYearAppearenceCountHomeDF.groupBy("SUBSCRIBER_ID")
+    var wholeYearMAXSubsHomeDF = wholeYearAppearenceCountHomeDF.groupBy("SUBSCRIBER_ID")
       .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
     var wholeYearHomeDF = wholeYearMAXSubsHomeDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
-      .join(wholeYearAppearenceCountHomeDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
-        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
-        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
+      .join(wholeYearAppearenceCountHomeDF, col("MAX-SUBSCRIBER_ID") === col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT") === col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID", "INDEX_1KM", "MAX_APEARENCE_COUNT");
 
     var filteredWorkDf = distinctHWTimeFilterDF.filter("HW_TIME_FILTER='WORK_HOUR'");
     var wholeYearAppearenceCountWorkDF = filteredWorkDf.groupBy("SUBSCRIBER_ID", "INDEX_1KM")
       .agg(count(lit(1)).as("APPEARENCE_COUNT"))
-    var wholeYearMAXSubsWorkDF =   wholeYearAppearenceCountWorkDF.groupBy("SUBSCRIBER_ID")
+    var wholeYearMAXSubsWorkDF = wholeYearAppearenceCountWorkDF.groupBy("SUBSCRIBER_ID")
       .agg(max("APPEARENCE_COUNT").as("MAX_APEARENCE_COUNT"));
     var wholeYearWorkDF = wholeYearMAXSubsWorkDF.select(col("SUBSCRIBER_ID") as "MAX-SUBSCRIBER_ID", col("MAX_APEARENCE_COUNT") as "MAX_APEARENCE_COUNT")
-      .join(wholeYearAppearenceCountWorkDF,col("MAX-SUBSCRIBER_ID")===col("SUBSCRIBER_ID")
-        && col("MAX_APEARENCE_COUNT")===col("APPEARENCE_COUNT"),
-        "inner").select("SUBSCRIBER_ID","INDEX_1KM","MAX_APEARENCE_COUNT");
+      .join(wholeYearAppearenceCountWorkDF, col("MAX-SUBSCRIBER_ID") === col("SUBSCRIBER_ID")
+        && col("MAX_APEARENCE_COUNT") === col("APPEARENCE_COUNT"),
+        "inner").select("SUBSCRIBER_ID", "INDEX_1KM", "MAX_APEARENCE_COUNT");
 
     wholeYearHomeDF.coalesce(1).write.option("header", "true").csv(homeOutputLocation)
     wholeYearWorkDF.coalesce(1).write.option("header", "true").csv(workOutputLocation)
@@ -107,8 +104,8 @@ object ParquetAnnualHomeWorkClassifyModel {
 
     var cellCenterDf = spark.read.option("header", "true").csv(cell_centers)
 
-      var homeLocationDf = wholeYearCountHome;
-      var workLocationDf = wholeYearCountWork;
+    var homeLocationDf = wholeYearCountHome;
+    var workLocationDf = wholeYearCountWork;
 
     var homeJoined = homeLocationDf.join(cellCenterDf, homeLocationDf("INDEX_1KM") === cellCenterDf("LOCATION_ID"), "inner").select("LOCATION_ID", "LATITUDE", "LONGITUDE", "COUNT_IN_1KM_CELL")
     var workJoined = workLocationDf.join(cellCenterDf, workLocationDf("INDEX_1KM") === cellCenterDf("LOCATION_ID"), "inner").select("LOCATION_ID", "LATITUDE", "LONGITUDE", "COUNT_IN_1KM_CELL")
