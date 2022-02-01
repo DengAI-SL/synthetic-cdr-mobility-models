@@ -15,7 +15,7 @@ object SampleUserExtract {
     val spark = SparkSession.builder()
       .appName("SampleUserExtract")
       .config("spark.sql.broadcastTimeout", "36000")
-      .config( vpn  )
+//      .config( vpn  )
       .getOrCreate();
 
     //    var dataRoot = "/SCDR"
