@@ -6,8 +6,8 @@ import org.apache.spark.sql.types.IntegerType
 
 object ParquetAnnualHomeWorkClassifyModel {
   /*
-   * Sample run : ./spark-submit --class lk.uom.datasearch.ParquetAnnualHomeWorkClassifyModel /media/education/0779713087/MSc/home-work-classify/target/scala-2.11/subscriber-home-work-classify-model_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
-   * Sample run on server: spark-submit --class lk.uom.datasearch.ParquetAnnualHomeWorkClassifyModel /home/hadoop/data/jobs/subscriber-home-work-classify-model_2.11-1.4.2.jar /SCDR
+   * Sample run : ./spark-submit --class lk.uom.datasearch.homework.ParquetAnnualHomeWorkClassifyModel /media/education/0779713087/MSc/home-work-classify/target/scala-2.11/subscriber-home-work-classify-model_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
+   * Sample run on server: spark-submit --class lk.uom.datasearch.homework.ParquetAnnualHomeWorkClassifyModel /home/hadoop/data/jobs/subscriber-home-work-classify-model_2.11-1.4.2.jar /SCDR
    */
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
