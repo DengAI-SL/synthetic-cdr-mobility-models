@@ -4,31 +4,29 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.IntegerType
 
-object ParquetAnnualHomeWorkClassifyModel {
-  /*
-   * Sample run : ./spark-submit --class lk.uom.datasearch.homework.ParquetAnnualHomeWorkClassifyModel /media/education/0779713087/MSc/home-work-classify/target/scala-2.11/subscriber-home-work-classify-model_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
-   * Sample run on server: spark-submit --class lk.uom.datasearch.homework.ParquetAnnualHomeWorkClassifyModel /home/hadoop/data/jobs/subscriber-home-work-classify-model_2.11-1.4.2.jar /SCDR
-   */
+object WeeklyHomeWorkClassifyModel {
+
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .appName("HomeWorkClassifyModel")
-      .getOrCreate();
+      .getOrCreate()
+
+    val localDataRoot = "/media/education/0779713087/MSc/Data";
+    ;
 
     //    val dataRoot = "/SCDR"
-    val localDataRoot = "/media/education/0779713087/MSc/Data";
-
     var dataRoot = localDataRoot;
     if (args(0) != null) {
       dataRoot = args(0);
     }
-    println("data root : ", dataRoot)
+    println("data root : ", dataRoot);
 
     val dataDir = dataRoot + "/synv_20130601_20131201"
 
     val homeOutputLocation = dataRoot + "/output/HomeYearOutput.csv"
     val workOutputLocation = dataRoot + "/output/WorkYearOutput.csv"
 
-    // Reading parquet data
+
     var cdrDF = spark.read.parquet(dataDir)
       .select(col("SUBSCRIBER_ID"), to_timestamp(col("CALL_TIME"), "yyyyMMddHHmmss").as("CALL_TIMESTAMP"), col("INDEX_1KM"))
       .withColumn("WEEK_OF_YEAR", date_format(col("CALL_TIMESTAMP"), "w").cast(IntegerType))
@@ -36,7 +34,6 @@ object ParquetAnnualHomeWorkClassifyModel {
       .withColumn("HOUR_OF_DAY", date_format(col("CALL_TIMESTAMP"), "H").cast(IntegerType));
 
 
-    // Filter for time, to separate home and work hours
     val HWTimeFilter: (Integer) => String = (hourOfDat: Integer) => {
 
       if (hourOfDat == null) {
@@ -104,6 +101,8 @@ object ParquetAnnualHomeWorkClassifyModel {
 
     var cellCenterDf = spark.read.option("header", "true").csv(cell_centers)
 
+    //    var homeLocationDf = spark.read.option("header", "true").csv(wholeYearCountHomeOutLocation)
+    //    var workLocationDf = spark.read.option("header", "true").csv(wholeYearCountWorkOutLocation)
     var homeLocationDf = wholeYearCountHome;
     var workLocationDf = wholeYearCountWork;
 
