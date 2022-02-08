@@ -7,7 +7,7 @@ import org.apache.spark.sql.types.IntegerType
 
 object AnnualHomeWorkClassifyModel {
   /*
-   * Sample run : ./bin/spark-submit --class lk.uom.datasearch.homework.AnnualHomeWorkClassifyModel /media/education/0779713087/MSc/home-work-classify/target/scala-2.12/synthetic-cdr-mobility-models_2.12-1.4.2.jar /media/education/0779713087/MSc/Data 1 0 54 false true
+   * Sample run : ./bin/spark-submit --class lk.uom.datasearch.homework.AnnualHomeWorkClassifyModel /media/education/0779713087/MSc/synthetic-cdr-mobility-models/target/scala-2.12/synthetic-cdr-mobility-models_2.12-1.4.2.jar /media/education/0779713087/MSc/Data 1 0 54 false true
    * Sample run on server: /opt/spark-3.2.1/bin/spark-submit --class lk.uom.datasearch.homework.AnnualHomeWorkClassifyModel /home/hadoop/jobs/synthetic-cdr-mobility-models_2.12-1.4.2.jar /SCDR 1 0 54 false true
    */
 

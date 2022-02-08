@@ -8,7 +8,7 @@ import org.apache.spark.sql.functions.rand
 object SampleUserExtract {
 
   /*
-   * Sample run : ./spark-submit --class lk.uom.datasearch.sample.SampleUserExtract /media/education/0779713087/MSc/home-work-classify/target/scala-2.11/synthetic-cdr-mobility-models_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
+   * Sample run : ./spark-submit --class lk.uom.datasearch.sample.SampleUserExtract /media/education/0779713087/MSc/synthetic-cdr-mobility-models/target/scala-2.11/synthetic-cdr-mobility-models_2.11-1.4.2.jar /media/education/0779713087/MSc/Data
    * Sample run on server: spark-submit --class lk.uom.datasearch.sample.SampleUserExtract /home/hadoop/data/jobs/synthetic-cdr-mobility-models_2.11-1.4.2.jar /SCDR
    */
   def main(args: Array[String]): Unit = {
