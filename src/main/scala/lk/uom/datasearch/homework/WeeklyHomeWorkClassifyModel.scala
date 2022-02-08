@@ -10,6 +10,7 @@ object WeeklyHomeWorkClassifyModel {
     val spark = SparkSession.builder()
       .appName("HomeWorkClassifyModel")
       .getOrCreate()
+    spark.conf.set("spark.sql.legacy.timeParserPolicy","LEGACY")
 
     val localDataRoot = "/media/education/0779713087/MSc/Data";
     ;

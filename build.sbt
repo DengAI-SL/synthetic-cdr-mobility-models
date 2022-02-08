@@ -2,13 +2,13 @@ name := "subscriber-home-work-classify-model"
 
 version := "1.4.2"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.15"
 
 scalacOptions ++= Seq("-unchecked","-deprecation")
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" % "spark-core_2.12" % "2.4.6" % "provided",
-  "org.apache.spark" % "spark-sql_2.12" % "2.4.6" % "provided"
+  "org.apache.spark" % "spark-core_2.12" % "3.2.1" % "provided",
+  "org.apache.spark" % "spark-sql_2.12" % "3.2.1" % "provided"
 )
 
 lazy val commonSettings = Seq(
