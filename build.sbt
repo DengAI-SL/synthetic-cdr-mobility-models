@@ -1,4 +1,4 @@
-name := "subscriber-home-work-classify-model"
+name := "synthetic-cdr-mobility-models"
 
 version := "1.4.2"
 
