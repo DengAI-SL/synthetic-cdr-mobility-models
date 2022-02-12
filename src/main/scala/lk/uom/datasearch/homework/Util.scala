@@ -17,6 +17,11 @@ object Util {
   ))
 
   def readParquetCDR(dataRoot: String, startWeek: Int, endWeek: Int, spark : SparkSession): DataFrame ={
+    val cdrDF = readParquetCDR(dataRoot, spark)
+    return cdrDF.filter(col("WEEK_OF_YEAR").between(startWeek, endWeek))
+  }
+
+  def readParquetCDR(dataRoot: String, spark: SparkSession): DataFrame ={
     val dataDirs = ListBuffer(
       //                      "/synv_20130601_20131201"
       "/generated_voice_records_20121201_20130601",
@@ -53,11 +58,11 @@ object Util {
     val cdrDF = spark.read.option("mode", "DROPMALFORMED").format("parquet")
       .schema(cdr_schema).parquet(includedFiles:_*)
       .select(col("SUBSCRIBER_ID"), to_timestamp(col("CALL_TIME"), "yyyyMMddHHmmss").as("CALL_TIMESTAMP"), col("INDEX_1KM"))
+      .withColumn("YEAR", date_format(col("CALL_TIMESTAMP"), "y").cast(IntegerType))
       .withColumn("WEEK_OF_YEAR", date_format(col("CALL_TIMESTAMP"), "w").cast(IntegerType))
       .withColumn("DATE_OF_YEAR", date_format(col("CALL_TIMESTAMP"), "D").cast(IntegerType))
       .withColumn("HOUR_OF_DAY", date_format(col("CALL_TIMESTAMP"), "H").cast(IntegerType));
-
-    return cdrDF.filter(col("WEEK_OF_YEAR").between(startWeek, endWeek))
+    return  cdrDF
   }
 
   def calculateTemporalAppearance(cdrDF: DataFrame): DataFrame = {
